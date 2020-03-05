@@ -28,5 +28,3 @@ This command will install all `app dependencies` .
 
 export default Constants;
 ```
-
-- This project was developed with purpose get items from a Web Api and show on to user.
