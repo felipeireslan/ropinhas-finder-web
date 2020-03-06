@@ -13,10 +13,10 @@ and run the following command.
 
 This command will install all `app dependencies` .
 
-- After that you have to create a file inside `src/constants` with a name `constants.js` like below.
+- After that you have to create a file inside `src/constants` with name `constants.js` like below.
 
 ```javascript
-    const Constants = {
+const Constants = {
     BASE_HOST: '{{ your api base host }}',
     BASE_API_PATHS: {
         getPointsByStreamer: (streamerName, username) => `${Constants.BASE_HOST}/points/${streamerName}/${username}`,
