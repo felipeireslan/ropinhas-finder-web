@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Button from 'react-bootstrap/Button';
+import debounce from 'debounce';
 
 import './App.css';
 
@@ -12,40 +14,88 @@ import ProductList from './components/ProductList/ProductList';
 const App = () => {
 	const [streamerList, setStreamerList] = useState([])
 	const [streamerName, setStreamerName] = useState('')
+	const [currentStreamerPoints, setCurrentStreamerPoints] = useState(0)
 	const [productList, setProductList] = useState([])
-
-	const handleGetProductListByStreamerName = useCallback(() => {
-		const endpoint = Constants.BASE_API_PATHS.getStoreItemsByStreamer(streamerName, 'streamElements')
-
-		fetch(endpoint)
-			.then(response => response.json())
-			.then(jsonResponse => {
-				setProductList(jsonResponse.data.skins_list || [])
-			}).catch(error => console.warn)
-	}, [streamerName])
+	const [currentStreamer, setCurrentStreamer] = useState({})
+	const [isLoading, setLoading] = useState(false)
 
 	useEffect(() => {
 		handleGetStreamerList()
 	}, [])
 
-	useEffect(() => {
-		if (streamerName && streamerName !== '') {
-			handleGetProductListByStreamerName()
-		}
-	}, [streamerName, handleGetProductListByStreamerName])
+	const handleStreamerPoints = (name) => {
+		const endpoint = Constants.BASE_API_PATHS.getPointsByStreamer(name, 'hermanoteu95')
 
-	const handleGetStreamerList = async () => {
+		fetch(endpoint)
+			.then(response => response.json())
+			.then(jsonResponse => {
+				const { data: { points } } = jsonResponse
+				setCurrentStreamerPoints(points)
+			}).catch(console.error)
+	}
+
+	const handleGetProductListByStreamerName = useCallback((name) => {
+		setLoading(true)
+		const endpoint = Constants.BASE_API_PATHS.getStoreItemsByStreamer(name, 'streamElements')
+
+		fetch(endpoint)
+			.then(response => response.json())
+			.then(jsonResponse => {
+				setProductList(jsonResponse.data.skins_list || [])
+				setCurrentStreamer({ name: name })
+				setLoading(false)
+				handleStreamerPoints(name)
+			}).catch(error => {
+				console.log(error)
+				setLoading(false)
+			})
+	}, [])
+
+	const handleGetStreamerList = () => {
+		setLoading(true)
 		getStreamerList()
 			.then(response => {
 				if (response.success) {
 					const { streamer_list } = response.data
 
-					return setStreamerList(streamer_list)
+					setLoading(false)
+					setStreamerList(streamer_list)
+					return
 				}
 			}).catch(error => {
 				console.log(error)
+				setLoading(false)
 			})
 	}
+
+	const handleDebouncedStreamerName = useCallback(
+		debounce(newValue => {
+			handleGetProductListByStreamerName(newValue)
+		}, 1000),
+		[]
+	)
+
+	const handleStreamer = (variation) => {
+		const currentStreamerIndex = streamerList.findIndex(streamer => streamer.name === currentStreamer.name)
+
+		if (!currentStreamer.name || currentStreamer.name === '') {
+			return setStreamerName(streamerList[1].name)
+		}
+
+		if (variation === 'next') {
+			const nextStreamer = streamerList[currentStreamerIndex + 1]
+			return setStreamerName(nextStreamer.name)
+		} else {
+			const prevStreamer = streamerList[currentStreamerIndex - 1]
+			return setStreamerName(prevStreamer.name)
+		}
+	}
+
+	useEffect(() => {
+		if (streamerName && streamerName !== '') {
+			handleDebouncedStreamerName(streamerName)
+		}
+	}, [streamerName, handleDebouncedStreamerName])
 
 	const handleStreamerNameChange = (e) => {
 		setStreamerName(e.target.value)
@@ -62,13 +112,23 @@ const App = () => {
 			</div>
 
 			<div>
+				<p>Total de pontos: {currentStreamerPoints}</p>
+			</div>
+			<div>
 				<StreamerForm
 					onSubmit={handleFormSubmit}
 					onChange={handleStreamerNameChange}
 					streamerName={streamerName}
 				/>
 			</div>
-			{productList.length > 0 && <ProductList productList={productList} />}
+
+			{isLoading ? <div>Loading....</div> : (<div>
+				<div style={{ width: '60%', justifyContent: 'space-between', display: 'flex', margin: '0 auto' }}>
+					<Button onClick={() => handleStreamer('prev')}>Anterior</Button>
+					<Button onClick={() => handleStreamer('next')} >Próximo</Button>
+				</div>
+				{productList.length > 0 && <ProductList productList={productList} />}
+			</div>)}
 		</div>
 	);
 }
