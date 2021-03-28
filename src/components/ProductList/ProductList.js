@@ -14,7 +14,7 @@ export default class ProductList extends Component {
                     productList.map((product) => (
                         <ProductCard
                             key={product._id}
-                            image={product.image || product.alert.graphics.src}
+                            image={product.image || product.alert.graphics.src || product.thumbnail}
                             title={product.name}
                             description={product.description}
                             remaining={product.quantity.current}
